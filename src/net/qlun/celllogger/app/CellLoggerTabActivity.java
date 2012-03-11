@@ -1,43 +1,35 @@
 package net.qlun.celllogger.app;
 
+import com.viewpagerindicator.PageIndicator;
+import com.viewpagerindicator.TitlePageIndicator;
+
 import net.qlun.celllogger.R;
+import net.qlun.celllogger.fragment.TabFragmentAdapter;
 import android.app.TabActivity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.view.ViewPager;
 import android.widget.TabHost;
 
-public class CellLoggerTabActivity extends TabActivity {
+public class CellLoggerTabActivity extends FragmentActivity {
 
-	private static final String TAG_RECORD = "record";
-	private static final String TAG_HISTORY = "history";
-
+	TabFragmentAdapter mAdapter;
+	ViewPager mPager;
+	PageIndicator mIndicator;
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main_tab);
+		
+		mAdapter = new TabFragmentAdapter(getSupportFragmentManager());
+		
+		mPager = (ViewPager)findViewById(R.id.pager);
+		mPager.setAdapter(mAdapter);
 
-		{
-
-			addTabSpec(RecordActivity.class, TAG_RECORD, "Record");
-			addTabSpec(HistoryActivity.class, TAG_HISTORY, "History");
-
-			setCurrentTab(TAG_RECORD);
-		}
-	}
-
-	private void setCurrentTab(String tag) {
-		TabHost tabHost = getTabHost();
-		tabHost.setCurrentTabByTag(TAG_RECORD);
-	}
-
-	private void addTabSpec(Class<?> cls, String tag, String indicator) {
-
-		TabHost tabHost = getTabHost();
-		TabHost.TabSpec spec;
-
-		Intent intent = new Intent().setClass(this, cls);
-		spec = tabHost.newTabSpec(tag).setIndicator(indicator)
-				.setContent(intent);
-		tabHost.addTab(spec);
+		mIndicator = (TitlePageIndicator)findViewById(R.id.indicator);
+		mIndicator.setViewPager(mPager);
+		mIndicator.setCurrentItem(1);
 	}
 }

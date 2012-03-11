@@ -92,7 +92,7 @@ public class PhoneStateService extends Service {
 	private final IBinder mBinder = new LocalBinder();
 
 	public class LocalBinder extends Binder {
-		PhoneStateService getService() {
+		public PhoneStateService getService() {
 			return PhoneStateService.this;
 		}
 	}
