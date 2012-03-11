@@ -1,6 +1,7 @@
 package net.qlun.celllogger.app;
 
 import net.qlun.celllogger.R;
+import net.qlun.celllogger.app.PhoneStateService.CurrentCellInfo;
 import net.qlun.celllogger.util.QualityUtil;
 
 import org.achartengine.ChartFactory;
@@ -19,6 +20,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.LinearLayout;
@@ -50,6 +52,8 @@ public class RecordActivity extends Activity {
 
 	private long time_switch = -1;
 
+	private PowerManager.WakeLock wakeLock = null;
+	
 	private Runnable mChartUpdateTask = new Runnable() {
 		public void run() {
 
@@ -62,10 +66,10 @@ public class RecordActivity extends Activity {
 						.getDbmQuality(ci.signalStrength);
 
 				if (!ci.equals(currentCell)) {
-					// switch cell
+					// switch cell 
 					previousCell = null;
 					previousCell = currentCell;
-					currentCell = ci;
+					currentCell = (CurrentCellInfo) ci.clone();
 					time_switch = System.currentTimeMillis();
 				}
 
@@ -169,6 +173,17 @@ public class RecordActivity extends Activity {
 		} else {
 			mChartView.repaint();
 		}
+		
+		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+		wakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
+		wakeLock.acquire();
+	}
+	
+	@Override
+	public void onPause() {
+		super.onPause();
+		
+		wakeLock.release();
 	}
 
 	private void drawQuality() {

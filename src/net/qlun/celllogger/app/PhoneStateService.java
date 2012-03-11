@@ -1,6 +1,7 @@
 package net.qlun.celllogger.app;
 
 import java.util.List;
+import java.util.Random;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -37,34 +38,48 @@ public class PhoneStateService extends Service {
 	private TelephonyManager telephonyManager;
 	private LocationManager locationManager;
 
-	public class CurrentCellInfo {
+	public class CurrentCellInfo implements Cloneable {
 		public int cid;
 		public int lac;
 		public int signalStrength;
 		public int networkType;
-		
-		@Override 
+
+		@Override
 		public int hashCode() {
 			return cid + lac;
 		}
-		
+
 		@Override
 		public boolean equals(Object obj) {
-			 if(obj == this){
-	             return true;
-	         }
-			 if(obj == null || obj.getClass() != this.getClass()){
-	             return false;
-	         }
-			 CurrentCellInfo check = (CurrentCellInfo) obj;
-			 
-			 return (check.cid == cid && check.lac == lac); 
+			if (obj == this) {
+				return true;
+			}
+			if (obj == null || obj.getClass() != this.getClass()) {
+				return false;
+			}
+			CurrentCellInfo check = (CurrentCellInfo) obj;
+
+			return (check.cid == cid && check.lac == lac);
+		}
+
+		@Override
+		public Object clone() {
+			try {
+				CurrentCellInfo cloned = (CurrentCellInfo) super.clone();
+
+				
+				
+				return cloned;
+			} catch (CloneNotSupportedException e) {
+				System.out.println(e);
+				return null;
+			}
 		}
 	}
 
 	private CurrentCellInfo currentCell = new CurrentCellInfo();
 
-	public class CurrentLocationInfo {
+	public class CurrentLocationInfo implements Cloneable {
 		public float accuracy;
 		public double latitude;
 		public double longitude;
@@ -147,6 +162,7 @@ public class PhoneStateService extends Service {
 	private boolean broadcastCells = false;
 
 	public CurrentCellInfo getCurrentCellInfo() {
+
 		return currentCell;
 	}
 
@@ -155,7 +171,7 @@ public class PhoneStateService extends Service {
 	}
 
 	private void sendCells() {
-		if(!broadcastCells ) {
+		if (!broadcastCells) {
 			return;
 		}
 		// Toast.makeText(this, "cell info update", Toast.LENGTH_SHORT).show();
@@ -268,17 +284,16 @@ public class PhoneStateService extends Service {
 
 		Log.v(TAG, "bind service.");
 		/*
-		telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-
-		telephonyManager.listen(mPhoneListener,
-				PhoneStateListener.LISTEN_CELL_LOCATION
-						| PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-		*/
+		 * telephonyManager = (TelephonyManager)
+		 * getSystemService(Context.TELEPHONY_SERVICE);
+		 * 
+		 * telephonyManager.listen(mPhoneListener,
+		 * PhoneStateListener.LISTEN_CELL_LOCATION |
+		 * PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+		 */
 		return mBinder;
 	}
 
-
-	 
 	@Override
 	public void onDestroy() {
 		Log.v(TAG, "destroy service.");
