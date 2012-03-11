@@ -32,7 +32,6 @@ import android.widget.TextView;
 
 public class RecordFragment extends Fragment {
 
-	
 	PhoneStateService mService = null;
 
 	boolean mBound;
@@ -58,7 +57,7 @@ public class RecordFragment extends Fragment {
 	private long time_switch = -1;
 
 	private PowerManager.WakeLock wakeLock = null;
-	
+
 	private Runnable mChartUpdateTask = new Runnable() {
 		public void run() {
 
@@ -71,7 +70,7 @@ public class RecordFragment extends Fragment {
 						.getDbmQuality(ci.signalStrength);
 
 				if (!ci.equals(currentCell)) {
-					// switch cell 
+					// switch cell
 					previousCell = null;
 					previousCell = currentCell;
 					currentCell = (CurrentCellInfo) ci.clone();
@@ -96,8 +95,9 @@ public class RecordFragment extends Fragment {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+
 	}
+
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
@@ -134,7 +134,7 @@ public class RecordFragment extends Fragment {
 		}
 
 		mHandler.postDelayed(mChartUpdateTask, CHART_UPDATE_INTERVAL);
-		
+
 		return inflater.inflate(R.layout.record, container, false);
 	}
 
@@ -154,7 +154,8 @@ public class RecordFragment extends Fragment {
 		Log.v(TAG, "stop");
 		if (mBound) {
 			try {
-				getActivity().getApplicationContext().unbindService(mConnection);
+				getActivity().getApplicationContext()
+						.unbindService(mConnection);
 			} catch (IllegalArgumentException iae) {
 
 			}
@@ -166,10 +167,11 @@ public class RecordFragment extends Fragment {
 	public void onResume() {
 		super.onResume();
 		if (mChartView == null) {
-			LinearLayout layout = (LinearLayout) getActivity().findViewById(R.id.chart);
+			LinearLayout layout = (LinearLayout) getActivity().findViewById(
+					R.id.chart);
 
-			mChartView = ChartFactory.getCubeLineChartView(getActivity(), mDataset,
-					mRenderer, 0.33f);
+			mChartView = ChartFactory.getCubeLineChartView(getActivity(),
+					mDataset, mRenderer, 0.33f);
 
 			mRenderer.setClickEnabled(false);
 			mRenderer.setSelectableBuffer(100);
@@ -186,17 +188,24 @@ public class RecordFragment extends Fragment {
 		} else {
 			mChartView.repaint();
 		}
-		
-		PowerManager pm = (PowerManager) getActivity().getSystemService(Context.POWER_SERVICE);
+
+		PowerManager pm = (PowerManager) getActivity().getSystemService(
+				Context.POWER_SERVICE);
 		wakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
 		wakeLock.acquire();
 	}
-	
+
 	@Override
 	public void onPause() {
 		super.onPause();
-		
+
 		wakeLock.release();
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		mHandler.removeCallbacks(mChartUpdateTask);
 	}
 
 	private void drawQuality() {
@@ -223,22 +232,26 @@ public class RecordFragment extends Fragment {
 
 		if (currentCell != null) {
 			{
-				TextView ti = (TextView) getActivity().findViewById(R.id.current_cid);
+				TextView ti = (TextView) getActivity().findViewById(
+						R.id.current_cid);
 				ti.setText("" + currentCell.cid);
 			}
 			{
-				TextView ti = (TextView) getActivity().findViewById(R.id.current_lac);
+				TextView ti = (TextView) getActivity().findViewById(
+						R.id.current_lac);
 				ti.setText("" + currentCell.lac);
 			}
 		}
 
 		if (previousCell != null) {
 			{
-				TextView ti = (TextView) getActivity().findViewById(R.id.previous_cid);
+				TextView ti = (TextView) getActivity().findViewById(
+						R.id.previous_cid);
 				ti.setText("" + previousCell.cid);
 			}
 			{
-				TextView ti = (TextView) getActivity().findViewById(R.id.previous_lac);
+				TextView ti = (TextView) getActivity().findViewById(
+						R.id.previous_lac);
 				ti.setText("" + previousCell.lac);
 			}
 		}
@@ -253,7 +266,8 @@ public class RecordFragment extends Fragment {
 			String timeString = String.format("%02d:%02d:%02d", hours, minutes,
 					seconds);
 
-			TextView ti = (TextView) getActivity().findViewById(R.id.time_change);
+			TextView ti = (TextView) getActivity().findViewById(
+					R.id.time_change);
 			ti.setText(timeString);
 		}
 	}
