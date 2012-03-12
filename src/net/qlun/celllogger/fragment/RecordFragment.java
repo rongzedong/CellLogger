@@ -1,8 +1,10 @@
 package net.qlun.celllogger.fragment;
 
 import net.qlun.celllogger.R;
+import net.qlun.celllogger.Station;
 import net.qlun.celllogger.app.PhoneStateService;
 import net.qlun.celllogger.app.PhoneStateService.CurrentCellInfo;
+import net.qlun.celllogger.provider.CellLocationLog;
 import net.qlun.celllogger.util.QualityUtil;
 
 import org.achartengine.ChartFactory;
@@ -12,8 +14,11 @@ import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 
+import android.app.AlertDialog;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Color;
@@ -25,12 +30,15 @@ import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
-public class RecordFragment extends Fragment {
+public class RecordFragment extends Fragment implements OnClickListener {
 
 	PhoneStateService mService = null;
 
@@ -57,6 +65,8 @@ public class RecordFragment extends Fragment {
 	private long time_switch = -1;
 
 	private PowerManager.WakeLock wakeLock = null;
+
+	private String last_save = null;
 
 	private Runnable mChartUpdateTask = new Runnable() {
 		public void run() {
@@ -146,6 +156,12 @@ public class RecordFragment extends Fragment {
 		System.out.println(mConnection);
 		getActivity().getApplicationContext().bindService(intent, mConnection,
 				Context.BIND_AUTO_CREATE);
+
+		{
+			Button btn = (Button) getActivity()
+					.findViewById(R.id.button_record);
+			btn.setOnClickListener(this);
+		}
 	}
 
 	@Override
@@ -270,6 +286,11 @@ public class RecordFragment extends Fragment {
 					R.id.time_change);
 			ti.setText(timeString);
 		}
+		if (last_save != null) {
+			TextView ti = (TextView) getActivity().findViewById(
+					R.id.last_record);
+			ti.setText(last_save);
+		}
 	}
 
 	private ServiceConnection mConnection = new ServiceConnection() {
@@ -287,5 +308,61 @@ public class RecordFragment extends Fragment {
 			Log.v(TAG, "service disconnected.");
 			mBound = false;
 		}
+
 	};
+
+	private void saveStation(String station_id,
+			PhoneStateService.CurrentCellInfo ci, long tm) {
+
+		Log.v(TAG, "save " + station_id + ", " + ci);
+
+		ContentValues values = new ContentValues();
+		values.put(CellLocationLog.NETWORK_TYPE, ci.networkType);
+		values.put(CellLocationLog.CID, ci.cid);
+		values.put(CellLocationLog.LAC, ci.lac);
+		values.put(CellLocationLog.SIGNAL_STRENGTH, ci.signalStrength);
+		values.put(CellLocationLog.STATION_ID, station_id);
+		values.put(CellLocationLog.TIME, tm);
+		getActivity().getContentResolver().insert(CellLocationLog.CONTENT_URI,
+				values);
+
+		last_save = station_id + ", " + ci.cid;
+	}
+
+	@Override
+	public void onClick(View view) {
+		switch (view.getId()) {
+		case R.id.button_record:
+			Log.v(TAG, "save button click.");
+			{
+
+				final CurrentCellInfo stopCi = (CurrentCellInfo) currentCell
+						.clone();
+				final long tm = System.currentTimeMillis();
+
+				AlertDialog.Builder builder = new AlertDialog.Builder(
+						getActivity());
+				builder.setTitle("Pick a station");
+				builder.setItems(Station.items,
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog, int item) {
+
+								String station_id = Station.items[item]
+										.toString();
+
+								saveStation(station_id, stopCi, tm);
+
+								Toast.makeText(
+										getActivity().getApplicationContext(),
+										station_id, Toast.LENGTH_SHORT).show();
+							}
+						});
+				AlertDialog alert = builder.create();
+				alert.show();
+
+			}
+			break;
+		}
+
+	}
 }

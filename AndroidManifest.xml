@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="net.qlun.celllogger"
-    android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionCode="2"
+    android:versionName="1.1" >
 
     <uses-sdk android:minSdkVersion="8" />
 
@@ -35,6 +35,10 @@
             android:theme="@android:style/Theme.NoTitleBar" />
 
         <service android:name=".app.PhoneStateService" />
+
+        <provider
+            android:name=".provider.CellLocationLogProvider"
+            android:authorities="net.qlun.celllogger.provider.CellLocationLog" />
     </application>
 
 </manifest>
