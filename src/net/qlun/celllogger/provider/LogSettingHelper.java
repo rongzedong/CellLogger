@@ -6,25 +6,25 @@ import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-class CellLocationLogHelper extends SQLiteOpenHelper {
+class LogSettingHelper extends SQLiteOpenHelper {
 
-	private static final String TAG = "LogHelper";
+	private static final String TAG = "SettingHelper";
 
-	public CellLocationLogHelper(Context context, String name,
+	public LogSettingHelper(Context context, String name,
 			CursorFactory factory, int version) {
 
 		super(context, name, factory, version);
 
-		Log.v(TAG, CellLocationLogHelper.class.getName() + " construct. ver="
-				+ CellLocationLog.DATABASE_VERSION);
+		Log.v(TAG, LogSettingHelper.class.getName() + " construct. ver="
+				+ LogSetting.DATABASE_VERSION);
 
 	}
 
 	@Override
 	public void onCreate(SQLiteDatabase db) {
-		Log.v(TAG, CellLocationLogHelper.class.getName() + " onCreate");
+		Log.v(TAG, LogSettingHelper.class.getName() + " onCreate");
 
-		db.execSQL(CellLocationLog.TABLE_CREATE);
+		db.execSQL(LogSetting.TABLE_CREATE);
 
 	}
 
@@ -32,8 +32,10 @@ class CellLocationLogHelper extends SQLiteOpenHelper {
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 		Log.v(TAG, CellLocationLogHelper.class.getName() + " onUpgrade.");
 
-		// db.execSQL("DROP TABLE IF EXISTS " + CellLocationLog.TABLE_NAME);
-		// db.execSQL(CellLocationLog.TABLE_CREATE);
+		if (oldVersion == 1 && newVersion > oldVersion) {
+			db.execSQL("DROP TABLE IF EXISTS " + LogSetting.TABLE_NAME);
+			db.execSQL(LogSetting.TABLE_CREATE);
+		}
 	}
 
 }

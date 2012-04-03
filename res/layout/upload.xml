@@ -5,10 +5,30 @@
     android:orientation="vertical" >
 
     <TextView
-        android:id="@+id/textView1"
+        android:id="@+id/text_sync_status"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:padding="20dip"
+        android:text="Sync Status: Idle" />
+
+    <LinearLayout
+        android:id="@+id/linearLayout1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="upload" />
+        android:orientation="horizontal" >
+
+        <Button
+            android:id="@+id/button_upload"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Sync" />
+
+        <Button
+            android:id="@+id/button_upload_all"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Force Sync All" />
+    </LinearLayout>
 
 </LinearLayout>

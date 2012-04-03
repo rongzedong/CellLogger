@@ -145,7 +145,14 @@ public class RecordFragment extends Fragment implements OnClickListener {
 
 		mHandler.postDelayed(mChartUpdateTask, CHART_UPDATE_INTERVAL);
 
-		return inflater.inflate(R.layout.record, container, false);
+		View view = inflater.inflate(R.layout.record, container, false);
+
+		{
+			Button btn = (Button) view.findViewById(R.id.button_record);
+			btn.setOnClickListener(this);
+		}
+
+		return view;
 	}
 
 	@Override
@@ -157,11 +164,6 @@ public class RecordFragment extends Fragment implements OnClickListener {
 		getActivity().getApplicationContext().bindService(intent, mConnection,
 				Context.BIND_AUTO_CREATE);
 
-		{
-			Button btn = (Button) getActivity()
-					.findViewById(R.id.button_record);
-			btn.setOnClickListener(this);
-		}
 	}
 
 	@Override
