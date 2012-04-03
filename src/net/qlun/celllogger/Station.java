@@ -1,47 +1,104 @@
 package net.qlun.celllogger;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import android.content.Context;
+import android.util.Log;
+
 public class Station {
-	public static final CharSequence[] items = { 
-		
-		"10-巴沟",
-		"10-苏州街",
-		"10-海淀黄庄",
-		"10-知春里",
-		"10-知春路",
-		"10-西土城",
-		"10-牡丹园",
-		"10-健德门",
-		"10-北土城",
-		"10-安贞门",
-		"10-惠新西街南口",
-		"10-芍药居",
-		"10-太阳宫",
-		"10-三元桥",
-		"10-亮马桥",
-		"10-农业展览馆",
-		"10-团结湖",
-		"10-呼家楼",
-		"10-金台夕照",
-		"10-国贸",
-		"10-双井",
-		"10-劲松",
 
-		"13-西直门",
-		"13-大钟寺",
-		"13-知春路",
-		"13-五道口",
-		"13-上地",
-		"13-西二旗",
-		"13-龙泽",
-		"13-回龙观",
-		"13-霍营",
-		"13-立水桥",
-		"13-北苑",
-		"13-望京西",
-		"13-芍药居",
-		"13-光熙门",
-		"13-柳芳",
-		"13-东直门",
+	private static final String TAG = "STATION";
 
-	};
+	private Map<CharSequence, Integer> _stations = new LinkedHashMap<CharSequence, Integer>();
+
+	private static Station _instance = null;
+	private final Context ctx;
+
+	private Station(Context ctx) {
+		this.ctx = ctx;
+	}
+
+	public static synchronized Station getInstance(Context ctx) {
+		if (_instance == null) {
+			_instance = new Station(ctx);
+			_instance.init();
+		}
+		return _instance;
+	}
+
+	private void init() {
+		Log.i(TAG, "init");
+
+		try {
+			InputStream is = ctx.getAssets().open("station.json");
+
+			int size = is.available();
+
+			byte[] buffer = new byte[size];
+			is.read(buffer);
+			is.close();
+
+			String text = new String(buffer);
+
+			try {
+				JSONObject r = (JSONObject) new JSONTokener(text).nextValue();
+				JSONArray lines = r.getJSONArray("stations");
+
+				for (int i = 0; i < lines.length(); i++) {
+					JSONObject line = lines.getJSONObject(i);
+					String lineName = line.getString("line");
+					JSONArray stations = line.getJSONArray("station");
+					for (int j = 0; j < stations.length(); j++) {
+						JSONObject station = stations.getJSONObject(j);
+						String stationName = station.getString("name");
+						int id = station.getInt("id");
+
+						String key = lineName + "-" + stationName;
+
+						this._stations.put(key, id);
+					}
+				}
+
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+
+		} catch (IOException e) {
+			// Should never happen!
+			throw new RuntimeException(e);
+		}
+	}
+
+	public CharSequence[] getAllItems() {
+		return _stations.keySet().toArray(new CharSequence[] {});
+	}
+
+	public CharSequence[] getItems(String line) {
+		String prefix = line + "-";
+
+		List<CharSequence> ret = new ArrayList<CharSequence>();
+
+		for (CharSequence item : _stations.keySet()) {
+			if (item.toString().startsWith(prefix)) {
+				ret.add(item);
+			}
+		}
+
+		return ret.toArray(new CharSequence[] {});
+	}
+
+	public int getId(String xStation) {
+		return _stations.get(xStation);
+	}
+	
 }

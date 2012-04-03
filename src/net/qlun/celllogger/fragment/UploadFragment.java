@@ -4,10 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.qlun.celllogger.R;
+import net.qlun.celllogger.Station;
 import net.qlun.celllogger.provider.CellLocationLog;
 import net.qlun.celllogger.provider.CellLocationLogItem;
 import net.qlun.celllogger.provider.LogSetting;
 import net.qlun.celllogger.remote.RemoteTask;
+import net.qlun.celllogger.util.Installation;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
 import android.content.Context;
 import android.database.Cursor;
 import android.os.AsyncTask;
@@ -35,9 +43,33 @@ public class UploadFragment extends Fragment implements OnClickListener {
 
 		protected void onPostExecute(String result) {
 
-			toggleButtons(true);
+			Log.v(TAG, "Upload Response: " + result);
 
-			updateStatus(SyncStatus.SUCCESS);
+			int status = -1;
+			String reason = "";
+			try {
+				JSONObject r = (JSONObject) new JSONTokener(result).nextValue();
+
+				status = r.getInt("error");
+				JSONObject payload = r.getJSONObject("payload");
+				if (payload.has("description")) {
+					reason = payload.getString("description");
+				}
+			} catch (NullPointerException e) {
+				e.printStackTrace();
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+
+			Log.i(TAG, status + ", " + reason);
+
+			if (status == 0) {
+				updateStatus(SyncStatus.SUCCESS);
+			} else {
+				updateStatus(SyncStatus.FAILED);
+			}
+
+			toggleButtons(true);
 		}
 
 	};
@@ -152,7 +184,7 @@ public class UploadFragment extends Fragment implements OnClickListener {
 		toggleButtons(false);
 
 		updateStatus(SyncStatus.PREPARE_DATA);
-		
+
 		new AsyncTask<Boolean, Void, List<CellLocationLogItem>>() {
 
 			@Override
@@ -191,12 +223,18 @@ public class UploadFragment extends Fragment implements OnClickListener {
 							.getColumnIndex(CellLocationLog.NETWORK_TYPE));
 					item.cid = c.getInt(c.getColumnIndex(CellLocationLog.CID));
 					item.lac = c.getInt(c.getColumnIndex(CellLocationLog.LAC));
-					item.station_id = c.getString(c
+					
+					// string station to integer id
+					String xStation = c.getString(c
 							.getColumnIndex(CellLocationLog.STATION_ID));
+					item.station_id = Station.getInstance(getActivity()).getId(xStation);
+					
 					item.signal_strength = c.getInt(c
 							.getColumnIndex(CellLocationLog.SIGNAL_STRENGTH));
+					
+					// micro-seconds to seconds
 					item.time = c.getLong(c
-							.getColumnIndex(CellLocationLog.TIME));
+							.getColumnIndex(CellLocationLog.TIME)) / 1000;
 
 					items.add(item);
 
@@ -217,8 +255,8 @@ public class UploadFragment extends Fragment implements OnClickListener {
 				Log.v(TAG, "" + items.size());
 
 				updateStatus(SyncStatus.UPLOADING);
-				
-				String json = "";
+
+				String json = getRequestJson(items);
 
 				String remote_endpoint = UploadFragment.this
 						.getString(R.string.remote_endpoint);
@@ -230,7 +268,6 @@ public class UploadFragment extends Fragment implements OnClickListener {
 
 		}.execute(all);
 
-		
 	}
 
 	private void updateStatus(int status) {
@@ -249,6 +286,25 @@ public class UploadFragment extends Fragment implements OnClickListener {
 		TextView tv = (TextView) getActivity().findViewById(
 				R.id.text_sync_status);
 		tv.setText("Sync Status: " + msg);
+	}
+
+	private String getRequestJson(List<CellLocationLogItem> items) {
+
+		JSONObject root = new JSONObject();
+		try {
+			root.put("client", Installation.id(getActivity()));
+
+			JSONArray records = new JSONArray();
+			for (CellLocationLogItem item : items) {
+				records.put(item.toJSONObject());
+			}
+			root.put("records", records);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return root.toString();
 	}
 
 }

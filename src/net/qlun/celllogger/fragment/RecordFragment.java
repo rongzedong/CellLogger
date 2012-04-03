@@ -345,11 +345,12 @@ public class RecordFragment extends Fragment implements OnClickListener {
 				AlertDialog.Builder builder = new AlertDialog.Builder(
 						getActivity());
 				builder.setTitle("Pick a station");
-				builder.setItems(Station.items,
+				final CharSequence[] items = Station.getInstance(getActivity()).getAllItems();
+				builder.setItems(items,
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog, int item) {
 
-								String station_id = Station.items[item]
+								String station_id = items[item]
 										.toString();
 
 								saveStation(station_id, stopCi, tm);
