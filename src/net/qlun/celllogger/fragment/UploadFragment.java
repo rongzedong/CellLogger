@@ -33,12 +33,15 @@ public class UploadFragment extends Fragment implements OnClickListener {
 
 	private static final String TAG = "CL-Upload";
 
-	protected static final String KEY_OFFSET = "upload_offset";
+	protected static final String KEY_OFFSET = "upload_offset2";
 
 	private class UploadTask extends RemoteTask {
 
-		public UploadTask(Context c) {
+		private final int newOffset;
+
+		public UploadTask(Context c, int newOffset) {
 			super(c);
+			this.newOffset = newOffset;
 		}
 
 		protected void onPostExecute(String result) {
@@ -65,6 +68,11 @@ public class UploadFragment extends Fragment implements OnClickListener {
 
 			if (status == 0) {
 				updateStatus(SyncStatus.SUCCESS);
+
+				if (newOffset > 0) {
+					LogSetting.set(UploadFragment.this.getActivity(),
+							KEY_OFFSET, "" + newOffset);
+				}
 			} else {
 				updateStatus(SyncStatus.FAILED);
 			}
@@ -80,6 +88,7 @@ public class UploadFragment extends Fragment implements OnClickListener {
 		public static final int SUCCESS = 2;
 		public static final int FAILED = 3;
 		public static final int PREPARE_DATA = 4;
+		protected static final int NO_NEW = 5;
 	}
 
 	@Override
@@ -187,6 +196,8 @@ public class UploadFragment extends Fragment implements OnClickListener {
 
 		new AsyncTask<Boolean, Void, List<CellLocationLogItem>>() {
 
+			private int newOffset = -1;
+
 			@Override
 			protected List<CellLocationLogItem> doInBackground(
 					Boolean... params) {
@@ -199,6 +210,7 @@ public class UploadFragment extends Fragment implements OnClickListener {
 				if (!all) {
 					String s_offset = LogSetting.get(
 							UploadFragment.this.getActivity(), KEY_OFFSET);
+					Log.v(TAG, "s_offset: " + s_offset);
 					if (s_offset != null) {
 						offset = Integer.parseInt(s_offset, 10);
 					}
@@ -223,20 +235,25 @@ public class UploadFragment extends Fragment implements OnClickListener {
 							.getColumnIndex(CellLocationLog.NETWORK_TYPE));
 					item.cid = c.getInt(c.getColumnIndex(CellLocationLog.CID));
 					item.lac = c.getInt(c.getColumnIndex(CellLocationLog.LAC));
-					
+
 					// string station to integer id
 					String xStation = c.getString(c
 							.getColumnIndex(CellLocationLog.STATION_ID));
-					item.station_id = Station.getInstance(getActivity()).getId(xStation);
-					
+					item.station_id = Station.getInstance(getActivity()).getId(
+							xStation);
+
 					item.signal_strength = c.getInt(c
 							.getColumnIndex(CellLocationLog.SIGNAL_STRENGTH));
-					
+
 					// micro-seconds to seconds
 					item.time = c.getLong(c
 							.getColumnIndex(CellLocationLog.TIME)) / 1000;
 
 					items.add(item);
+
+					if (item.id > newOffset) {
+						newOffset = item.id;
+					}
 
 				}
 
@@ -254,16 +271,20 @@ public class UploadFragment extends Fragment implements OnClickListener {
 			protected void onPostExecute(List<CellLocationLogItem> items) {
 				Log.v(TAG, "" + items.size());
 
-				updateStatus(SyncStatus.UPLOADING);
+				if (items.size() > 0) {
+					updateStatus(SyncStatus.UPLOADING);
 
-				String json = getRequestJson(items);
+					String json = getRequestJson(items);
 
-				String remote_endpoint = UploadFragment.this
-						.getString(R.string.remote_endpoint);
+					String remote_endpoint = UploadFragment.this
+							.getString(R.string.remote_endpoint);
 
-				new UploadTask(UploadFragment.this.getActivity()).execute(
-						remote_endpoint, json);
-
+					new UploadTask(UploadFragment.this.getActivity(), newOffset)
+							.execute(remote_endpoint, json);
+				} else {
+					updateStatus(SyncStatus.NO_NEW);
+					toggleButtons(true);
+				}
 			}
 
 		}.execute(all);
@@ -272,7 +293,7 @@ public class UploadFragment extends Fragment implements OnClickListener {
 
 	private void updateStatus(int status) {
 		String[] msgs = new String[] { "Idle", "Uploading...", "Success",
-				"Failed", "Preparing..."
+				"Failed", "Preparing...", "Up to date"
 
 		};
 
