@@ -3,6 +3,6 @@
 
     <string name="hello">Hello World, CellLoggerActivity!</string>
     <string name="app_name">CellLogger</string>
-    <string name="remote_endpoint">http://192.168.10.121:8085/upload</string>
+    <string name="remote_endpoint">http://192.168.1.121:8085/upload</string>
 
 </resources>

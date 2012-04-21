@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory
+        android:key="categoryUpload"
+        android:title="Upload" >
+        <EditTextPreference
+            android:key="UploadEndpointUrl"
+            android:summary="Use http://..."
+            android:title="Upload Endpoint URL" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="categoryInfo"
+        android:title="Info" >
+        <Preference
+            android:key="version"
+            android:summary="version..."
+            android:title="Version" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

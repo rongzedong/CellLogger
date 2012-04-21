@@ -33,7 +33,11 @@
             android:name=".app.RecordActivity"
             android:label="@string/app_name"
             android:theme="@android:style/Theme.NoTitleBar" />
-
+        <activity
+            android:name=".app.SettingActivity"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.NoTitleBar" />
+        
         <service android:name=".app.PhoneStateService" />
 
         <provider
