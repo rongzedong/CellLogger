@@ -283,7 +283,7 @@ public class UploadFragment extends Fragment implements OnClickListener {
 							.execute(remote_endpoint, json);
 				} else {
 					updateStatus(SyncStatus.NO_NEW);
-					toggleButtons(true);                      
+					toggleButtons(true);
 				}
 			}
 

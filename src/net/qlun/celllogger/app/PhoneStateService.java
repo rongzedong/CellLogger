@@ -1,7 +1,6 @@
 package net.qlun.celllogger.app;
 
 import java.util.List;
-import java.util.Random;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -67,8 +66,6 @@ public class PhoneStateService extends Service {
 			try {
 				CurrentCellInfo cloned = (CurrentCellInfo) super.clone();
 
-				
-				
 				return cloned;
 			} catch (CloneNotSupportedException e) {
 				System.out.println(e);

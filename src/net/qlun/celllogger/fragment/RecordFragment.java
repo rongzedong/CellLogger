@@ -47,7 +47,7 @@ public class RecordFragment extends Fragment implements OnClickListener {
 	private static final int MAX_SAMPLES = 60;
 	protected static final long CHART_UPDATE_INTERVAL = 1000;
 
-	protected static final String TAG = "CL";
+	protected static final String TAG = "CL-Record";
 	private XYMultipleSeriesDataset mDataset = new XYMultipleSeriesDataset();
 	private XYMultipleSeriesRenderer mRenderer = new XYMultipleSeriesRenderer();
 	private XYSeries mCurrentSeries;
@@ -70,7 +70,7 @@ public class RecordFragment extends Fragment implements OnClickListener {
 
 	private Runnable mChartUpdateTask = new Runnable() {
 		public void run() {
-
+			// Log.v(TAG, "chart tick");
 			if (mBound) {
 
 				PhoneStateService.CurrentCellInfo ci = mService
@@ -105,7 +105,7 @@ public class RecordFragment extends Fragment implements OnClickListener {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
+		Log.v(TAG, "create");
 	}
 
 	@Override
@@ -160,30 +160,19 @@ public class RecordFragment extends Fragment implements OnClickListener {
 		super.onStart();
 		Log.v(TAG, "start");
 		Intent intent = new Intent(getActivity(), PhoneStateService.class);
-		System.out.println(mConnection);
+		// System.out.println(mConnection);
 		getActivity().getApplicationContext().bindService(intent, mConnection,
 				Context.BIND_AUTO_CREATE);
 
 	}
 
-	@Override
-	public void onStop() {
-		super.onStop();
-		Log.v(TAG, "stop");
-		if (mBound) {
-			try {
-				getActivity().getApplicationContext()
-						.unbindService(mConnection);
-			} catch (IllegalArgumentException iae) {
 
-			}
-			mBound = false;
-		}
-	}
 
 	@Override
 	public void onResume() {
 		super.onResume();
+		Log.v(TAG, "resume");
+
 		if (mChartView == null) {
 			LinearLayout layout = (LinearLayout) getActivity().findViewById(
 					R.id.chart);
@@ -216,18 +205,51 @@ public class RecordFragment extends Fragment implements OnClickListener {
 	@Override
 	public void onPause() {
 		super.onPause();
-
+		Log.v(TAG, "pause");
 		wakeLock.release();
 	}
 
 	@Override
+	public void onStop() {
+		super.onStop();
+		Log.v(TAG, "stop");
+		if (mBound) {
+			try {
+				getActivity().getApplicationContext()
+						.unbindService(mConnection);
+			} catch (IllegalArgumentException iae) {
+
+			}
+			mBound = false;
+		}
+		
+	}
+	
+	@Override
+	public void onDestroyView() {
+		super.onDestroyView();
+		Log.v(TAG, "destroyview");
+		
+		
+		mChartView = null;
+		mCurrentRenderer = null;
+		mCurrentSeries = null;
+		
+		mHandler.removeCallbacks(mChartUpdateTask);
+	}
+	
+	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		mHandler.removeCallbacks(mChartUpdateTask);
+		Log.v(TAG, "destroy");
+
+
 	}
 
 	private void drawQuality() {
 
+		// fixme 会不会那啥
+		
 		int total = mCurrentSeries.getItemCount();
 		if (total >= MAX_SAMPLES) {
 
@@ -252,12 +274,16 @@ public class RecordFragment extends Fragment implements OnClickListener {
 			{
 				TextView ti = (TextView) getActivity().findViewById(
 						R.id.current_cid);
-				ti.setText("" + currentCell.cid);
+				if (ti != null) {
+					ti.setText("" + currentCell.cid);
+				}
 			}
 			{
 				TextView ti = (TextView) getActivity().findViewById(
 						R.id.current_lac);
-				ti.setText("" + currentCell.lac);
+				if (ti != null) {
+					ti.setText("" + currentCell.lac);
+				}
 			}
 		}
 
@@ -265,12 +291,16 @@ public class RecordFragment extends Fragment implements OnClickListener {
 			{
 				TextView ti = (TextView) getActivity().findViewById(
 						R.id.previous_cid);
-				ti.setText("" + previousCell.cid);
+				if (ti != null) {
+					ti.setText("" + previousCell.cid);
+				}
 			}
 			{
 				TextView ti = (TextView) getActivity().findViewById(
 						R.id.previous_lac);
-				ti.setText("" + previousCell.lac);
+				if (ti != null) {
+					ti.setText("" + previousCell.lac);
+				}
 			}
 		}
 
@@ -286,12 +316,16 @@ public class RecordFragment extends Fragment implements OnClickListener {
 
 			TextView ti = (TextView) getActivity().findViewById(
 					R.id.time_change);
-			ti.setText(timeString);
+			if (ti != null) {
+				ti.setText(timeString);
+			}
 		}
 		if (last_save != null) {
 			TextView ti = (TextView) getActivity().findViewById(
 					R.id.last_record);
-			ti.setText(last_save);
+			if (ti != null) {
+				ti.setText(last_save);
+			}
 		}
 	}
 
@@ -345,21 +379,19 @@ public class RecordFragment extends Fragment implements OnClickListener {
 				AlertDialog.Builder builder = new AlertDialog.Builder(
 						getActivity());
 				builder.setTitle("Pick a station");
-				final CharSequence[] items = Station.getInstance(getActivity()).getAllItems();
-				builder.setItems(items,
-						new DialogInterface.OnClickListener() {
-							public void onClick(DialogInterface dialog, int item) {
+				final CharSequence[] items = Station.getInstance(getActivity())
+						.getAllItems();
+				builder.setItems(items, new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int item) {
 
-								String station_id = items[item]
-										.toString();
+						String station_id = items[item].toString();
 
-								saveStation(station_id, stopCi, tm);
+						saveStation(station_id, stopCi, tm);
 
-								Toast.makeText(
-										getActivity().getApplicationContext(),
-										station_id, Toast.LENGTH_SHORT).show();
-							}
-						});
+						Toast.makeText(getActivity().getApplicationContext(),
+								station_id, Toast.LENGTH_SHORT).show();
+					}
+				});
 				AlertDialog alert = builder.create();
 				alert.show();
 

@@ -9,11 +9,12 @@ import com.viewpagerindicator.TitleProvider;
 public class TabFragmentAdapter extends FragmentPagerAdapter implements
 		TitleProvider {
 
-	protected static final String[] TITLES = new String[] { "History",
-			"Record", "Upload" };
+	protected static final String[] TITLES = new String[] { "Upload",
+			"History", "Record", "Alarm" };
 
 	protected static final Class<?>[] CLASSES = new Class<?>[] {
-			HistoryFragment.class, RecordFragment.class, UploadFragment.class, };
+			UploadFragment.class, HistoryFragment.class, RecordFragment.class,
+			AlarmFragment.class, };
 
 	private int mCount = TITLES.length;
 
