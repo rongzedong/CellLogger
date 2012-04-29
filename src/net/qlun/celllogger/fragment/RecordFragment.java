@@ -230,6 +230,8 @@ public class RecordFragment extends Fragment implements OnClickListener {
 		super.onDestroyView();
 		Log.v(TAG, "destroyview");
 		
+		mDataset.removeSeries(mCurrentSeries);
+		mRenderer.removeSeriesRenderer(mCurrentRenderer);
 		
 		mChartView = null;
 		mCurrentRenderer = null;
