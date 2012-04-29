@@ -48,8 +48,8 @@ public class RecordFragment extends Fragment implements OnClickListener {
 	protected static final long CHART_UPDATE_INTERVAL = 1000;
 
 	protected static final String TAG = "CL-Record";
-	private XYMultipleSeriesDataset mDataset = new XYMultipleSeriesDataset();
-	private XYMultipleSeriesRenderer mRenderer = new XYMultipleSeriesRenderer();
+	private XYMultipleSeriesDataset mDataset;
+	private XYMultipleSeriesRenderer mRenderer;
 	private XYSeries mCurrentSeries;
 	private XYSeriesRenderer mCurrentRenderer;
 
@@ -112,7 +112,10 @@ public class RecordFragment extends Fragment implements OnClickListener {
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
 
-		Log.v(TAG, "a createView");
+		mDataset = new XYMultipleSeriesDataset();
+		mRenderer = new XYMultipleSeriesRenderer();
+		
+		Log.v(TAG, "createView");
 
 		mRenderer.setApplyBackgroundColor(true);
 		mRenderer.setBackgroundColor(Color.argb(100, 50, 50, 50));
@@ -232,6 +235,9 @@ public class RecordFragment extends Fragment implements OnClickListener {
 		
 		mDataset.removeSeries(mCurrentSeries);
 		mRenderer.removeSeriesRenderer(mCurrentRenderer);
+		
+		mDataset = null;
+		mRenderer = null;
 		
 		mChartView = null;
 		mCurrentRenderer = null;
