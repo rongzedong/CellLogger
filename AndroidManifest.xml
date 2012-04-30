@@ -51,6 +51,12 @@
 
         <service android:name=".app.PhoneStateService" />
 
+        <receiver android:name=".app.InitReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        
         <provider
             android:name=".provider.CellLocationLogProvider"
             android:authorities="net.qlun.celllogger.provider.CellLocationLog" />
