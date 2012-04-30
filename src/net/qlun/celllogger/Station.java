@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -100,5 +101,15 @@ public class Station {
 	public int getId(String xStation) {
 		return _stations.get(xStation);
 	}
-	
+
+	public String getName(int id) {
+
+		for (Entry<CharSequence, Integer> x : _stations.entrySet()) {
+			if (x.getValue() == id) {
+				return x.getKey().toString();
+			}
+		}
+
+		return "---";
+	}
 }

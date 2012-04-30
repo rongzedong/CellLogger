@@ -6,6 +6,7 @@ import net.qlun.celllogger.app.PhoneStateService;
 import net.qlun.celllogger.app.PhoneStateService.CurrentCellInfo;
 import net.qlun.celllogger.provider.CellLocationLog;
 import net.qlun.celllogger.util.QualityUtil;
+import net.qlun.celllogger.util.ToastMaster;
 
 import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
@@ -13,6 +14,8 @@ import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
+
+
 
 import android.app.AlertDialog;
 import android.content.ComponentName;
@@ -396,8 +399,10 @@ public class RecordFragment extends Fragment implements OnClickListener {
 
 						saveStation(station_id, stopCi, tm);
 
-						Toast.makeText(getActivity().getApplicationContext(),
-								station_id, Toast.LENGTH_SHORT).show();
+						Toast toast = Toast.makeText(getActivity().getApplicationContext(),
+								station_id, Toast.LENGTH_SHORT);
+						ToastMaster.setToast(toast);
+						toast.show();
 					}
 				});
 				AlertDialog alert = builder.create();
