@@ -32,6 +32,9 @@ public class CellLoggerTabActivity extends FragmentActivity {
 		mIndicator = (TitlePageIndicator) findViewById(R.id.indicator);
 		mIndicator.setViewPager(mPager);
 		mIndicator.setCurrentItem(2);
+
+		Intent intent = new Intent(this, PhoneStateService.class);
+		startService(intent);
 	}
 
 	@Override

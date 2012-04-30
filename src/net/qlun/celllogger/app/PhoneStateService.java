@@ -1,14 +1,12 @@
 package net.qlun.celllogger.app;
 
-import java.util.List;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import net.qlun.celllogger.Station;
+import net.qlun.celllogger.provider.Alarm;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -17,7 +15,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.telephony.CellLocation;
-import android.telephony.NeighboringCellInfo;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
@@ -32,7 +29,20 @@ public class PhoneStateService extends Service {
 	protected static final String LOCATION_UPDATE_ACTION = PhoneStateService.class
 			.getName() + "-loc_update";
 
+	/**
+	 * send stop alert to service
+	 */
+	public static final String STOP_ALARM_ACTION = PhoneStateService.class
+			.getName() + "-stop_alarm";
+
+	/**
+	 * send dismiss to alert activity
+	 */
+	public static final String DISMISS_ALERT_ACTION = PhoneStateService.class
+			.getName() + "-dismiss_alert";
+
 	private static final String TAG = "cl-svr";
+
 	private Context context;
 	private TelephonyManager telephonyManager;
 	private LocationManager locationManager;
@@ -102,7 +112,7 @@ public class PhoneStateService extends Service {
 	private Runnable mTickTask = new Runnable() {
 		public void run() {
 
-			sendCells();
+			// sendCells();
 
 			mHandler.postDelayed(this, 5000);
 		}
@@ -123,7 +133,6 @@ public class PhoneStateService extends Service {
 				currentCell.signalStrength = signalStrength.getCdmaDbm();
 			}
 
-			sendCells();
 		}
 
 		@Override
@@ -152,11 +161,11 @@ public class PhoneStateService extends Service {
 
 			currentCell.networkType = networkType;
 
-			sendCells();
+			cellLocationChanged();
+
 		}
 
 	};
-	private boolean broadcastCells = false;
 
 	public CurrentCellInfo getCurrentCellInfo() {
 
@@ -165,63 +174,6 @@ public class PhoneStateService extends Service {
 
 	public CurrentLocationInfo getCurrentLocationInfo() {
 		return currentLocation;
-	}
-
-	private void sendCells() {
-		if (!broadcastCells) {
-			return;
-		}
-		// Toast.makeText(this, "cell info update", Toast.LENGTH_SHORT).show();
-
-		Log.v(TAG, "sendCellInfo begin");
-
-		JSONObject jo = new JSONObject();
-		try {
-
-			JSONObject j0 = new JSONObject();
-			j0.put("cid", currentCell.cid);
-			j0.put("lac", currentCell.lac);
-			j0.put("network", currentCell.networkType);
-			j0.put("signalStrength", currentCell.signalStrength);
-			jo.put("current", j0);
-
-			JSONArray ja = new JSONArray();
-			List<NeighboringCellInfo> cells = telephonyManager
-					.getNeighboringCellInfo();
-			for (NeighboringCellInfo cell : cells) {
-
-				JSONObject j1 = new JSONObject();
-
-				j1.put("cid", cell.getCid());
-				j1.put("lac", cell.getLac());
-				j1.put("network", cell.getNetworkType());
-				j1.put("psc", cell.getPsc());
-				j1.put("rssi", cell.getRssi());
-
-				ja.put(j1);
-
-				String cellInfo = "Cell: " + cell.getCid() + ", "
-						+ cell.getRssi();
-				Log.i(TAG, cellInfo);
-
-			}
-
-			jo.put("cells", ja);
-
-			Log.v(TAG, "sendCellInfo data ok, " + jo.toString());
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-
-			Log.v(TAG, "sendCellInfo data error, " + e.getMessage());
-		}
-
-		Intent intent = new Intent();
-		intent.setAction(CELL_UPDATE_ACTION);
-		intent.putExtra("INFO", jo.toString());
-		sendBroadcast(intent);
-
-		Log.v(TAG, "sendCellInfo end");
 	}
 
 	private LocationListener mLocationListener = new LocationListener() {
@@ -245,6 +197,34 @@ public class PhoneStateService extends Service {
 		}
 	};
 
+	private BroadcastReceiver mReceiver = new BroadcastReceiver() {
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+
+			if (STOP_ALARM_ACTION.equals(intent.getAction())) {
+				CharSequence name = intent.getCharSequenceExtra("name");
+
+				Log.v(TAG, "stop alarm " + name);
+
+				// stop alarm and dismiss alert
+				stopHorn();
+
+				
+				Intent i = new Intent();
+				i.setAction(PhoneStateService.DISMISS_ALERT_ACTION);
+				i.putExtra("name", name);
+				sendBroadcast(i);
+				
+				
+			} else {
+				Log.e(TAG, "unexpected action: " + intent.getAction());
+			}
+
+		}
+
+	};
+
 	@Override
 	public void onCreate() {
 
@@ -264,7 +244,8 @@ public class PhoneStateService extends Service {
 		// locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
 		// 5000, 10, mLocationListener);
 
-		mHandler.postDelayed(mTickTask, 5000);
+		// mHandler.postDelayed(mTickTask, 5000);
+
 	}
 
 	@Override
@@ -272,6 +253,10 @@ public class PhoneStateService extends Service {
 		Log.v(TAG, "start service.");
 
 		// new LogCatTask().execute();
+
+		IntentFilter intentFilter = new IntentFilter();
+		intentFilter.addAction(STOP_ALARM_ACTION);
+		registerReceiver(mReceiver, intentFilter);
 
 		return START_STICKY;
 	}
@@ -301,4 +286,43 @@ public class PhoneStateService extends Service {
 		super.onDestroy();
 	}
 
+	private void cellLocationChanged() {
+		Log.v(TAG, "cell changed, " + currentCell.lac + ", " + currentCell.cid);
+
+		// try get station id from Station
+		int station = 1310;
+
+		Log.v(TAG, "got station , " + station);
+
+		// check if has alarm
+
+		boolean en = Alarm.checkStationEnabled(this, station);
+		if (!en) {
+			Log.v(TAG, "alarm not enabled.");
+			return;
+		}
+
+		Log.i(TAG, "alarm on");
+
+		String name = Station.getInstance(this).getName(station);
+
+		// play sound here?
+		startHorn();
+
+		// ,and open intent
+		Intent intent = new Intent(this, AlarmAlertActivity.class);
+		intent.putExtra("name", name);
+		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
+		startActivity(intent);
+
+	}
+
+	public void startHorn() {
+		Log.v(TAG, "start horn");
+	}
+
+	public void stopHorn() {
+		Log.v(TAG, "stop horn");
+	}
 }

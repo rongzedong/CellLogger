@@ -1,5 +1,7 @@
 package net.qlun.celllogger.provider;
 
+import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 
 public class Alarm {
@@ -28,5 +30,25 @@ public class Alarm {
 
 	public static final int MATCH_ALARM = 1;
 	public static final int MATCH_ALARM_ID = 2;
+	public static final int MATCH_STATION_ID = 3;
 
+	public static boolean checkStationEnabled(Context ctx, int station) {
+		boolean ret = false;
+
+		String x = "" + station;
+
+		Cursor c = ctx.getContentResolver().query(Alarm.CONTENT_URI, null,
+				" station_id = ? ", new String[] { x, }, null);
+
+		if (c.moveToFirst()) {
+			int enabled = c.getInt(c.getColumnIndex(ENABLED));
+
+			ret = (enabled == Enabled.YES);
+		}
+
+		c.close();
+
+		return ret;
+
+	}
 }
