@@ -5,6 +5,8 @@ import java.util.List;
 
 import net.qlun.celllogger.R;
 import net.qlun.celllogger.Station;
+import net.qlun.celllogger.StationCell;
+import net.qlun.celllogger.app.SettingActivity;
 import net.qlun.celllogger.provider.CellLocationLog;
 import net.qlun.celllogger.provider.CellLocationLogItem;
 import net.qlun.celllogger.provider.LogSetting;
@@ -20,6 +22,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -82,13 +85,50 @@ public class UploadFragment extends Fragment implements OnClickListener {
 
 	};
 
+	private class DownloadTask extends RemoteTask {
+
+		public DownloadTask(Context c) {
+			super(c);
+
+		}
+
+		protected void onPostExecute(String result) {
+
+			Log.v(TAG,
+					"Download Response Length: "
+							+ (result != null ? result.length() : -1));
+
+			if (result != null) {
+				// check if valid json format
+				try {
+					JSONObject r = (JSONObject) new JSONTokener(result)
+							.nextValue();
+					int version = r.getInt("version");
+					if (version > 0) {
+						// format ok
+						StationCell sc = StationCell.getInstance(context);
+						sc.save(result);
+						sc.reload();
+					}
+				} catch (NullPointerException e) {
+					e.printStackTrace();
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+			}
+
+		}
+
+	};
+
 	private class SyncStatus {
 		public static final int IDLE = 0;
 		public static final int UPLOADING = 1;
 		public static final int SUCCESS = 2;
 		public static final int FAILED = 3;
 		public static final int PREPARE_DATA = 4;
-		protected static final int NO_NEW = 5;
+		public static final int NO_NEW = 5;
+		public static final int DOWNLOADING = 6;
 	}
 
 	@Override
@@ -163,13 +203,13 @@ public class UploadFragment extends Fragment implements OnClickListener {
 			Log.v(TAG, "upload button click.");
 			{
 
-				upload(false);
+				sync(false);
 			}
 			break;
 		case R.id.button_upload_all:
 			Log.v(TAG, "upload_all button click.");
 			{
-				upload(true);
+				sync(true);
 			}
 			break;
 		}
@@ -189,8 +229,20 @@ public class UploadFragment extends Fragment implements OnClickListener {
 		}
 	}
 
-	private void upload(boolean all) {
+	private void sync(boolean all) {
 		toggleButtons(false);
+
+		updateStatus(SyncStatus.DOWNLOADING);
+		{
+			String json = "{}";
+			String remote_endpoint = PreferenceManager
+					.getDefaultSharedPreferences(getActivity()).getString(
+							SettingActivity.KEY_DOWNLOAD_ENDPOINT,
+							getString(R.string.download_endpoint));
+
+			new DownloadTask(UploadFragment.this.getActivity()).execute(
+					remote_endpoint, json);
+		}
 
 		updateStatus(SyncStatus.PREPARE_DATA);
 
@@ -276,8 +328,10 @@ public class UploadFragment extends Fragment implements OnClickListener {
 
 					String json = getRequestJson(items);
 
-					String remote_endpoint = UploadFragment.this
-							.getString(R.string.remote_endpoint);
+					String remote_endpoint = PreferenceManager
+							.getDefaultSharedPreferences(getActivity())
+							.getString(SettingActivity.KEY_UPLOAD_ENDPOINT,
+									getString(R.string.upload_endpoint));
 
 					new UploadTask(UploadFragment.this.getActivity(), newOffset)
 							.execute(remote_endpoint, json);
@@ -293,7 +347,7 @@ public class UploadFragment extends Fragment implements OnClickListener {
 
 	private void updateStatus(int status) {
 		String[] msgs = new String[] { "Idle", "Uploading...", "Success",
-				"Failed", "Preparing...", "Up to date"
+				"Failed", "Preparing...", "Up to date", "Downloading..."
 
 		};
 

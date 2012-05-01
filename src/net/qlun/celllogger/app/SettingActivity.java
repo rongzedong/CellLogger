@@ -16,6 +16,8 @@ public class SettingActivity extends PreferenceActivity implements
 		OnSharedPreferenceChangeListener {
 
 	private static final String EMPTY = "[empty]";
+	public static final String KEY_UPLOAD_ENDPOINT = "UploadEndpointUrl";
+	public static final String KEY_DOWNLOAD_ENDPOINT = "UpdateEndpointUrl";
 	private final String TAG = "CL-pref";
 
 	@Override
@@ -55,11 +57,17 @@ public class SettingActivity extends PreferenceActivity implements
 					continue;
 				}
 
-				if (key.equals("UploadEndpointUrl")) {
+				if (key.equals(KEY_UPLOAD_ENDPOINT)) {
 
 					String value = PreferenceManager
 							.getDefaultSharedPreferences(this).getString(key,
-									getString(R.string.remote_endpoint));
+									getString(R.string.upload_endpoint));
+					pref.setSummary(value);
+				} else if (key.equals(KEY_DOWNLOAD_ENDPOINT)) {
+
+					String value = PreferenceManager
+							.getDefaultSharedPreferences(this).getString(key,
+									getString(R.string.download_endpoint));
 					pref.setSummary(value);
 				} else if (key.equals("version")) {
 					String versionName = "...";

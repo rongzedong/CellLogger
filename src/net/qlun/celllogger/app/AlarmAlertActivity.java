@@ -1,7 +1,6 @@
 package net.qlun.celllogger.app;
 
 import net.qlun.celllogger.R;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -10,9 +9,9 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -47,15 +46,15 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+
 		final Window win = getWindow();
 		win.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
 				| WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
 
 		win.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
 				| WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
-		
+
 		setContentView(R.layout.alarm_alert);
 
 		name = getIntent().getCharSequenceExtra("name");
@@ -66,12 +65,10 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 		Button dismiss = (Button) findViewById(R.id.button_dismiss);
 		dismiss.setOnClickListener(this);
 
-
 	}
 
 	@Override
 	protected void onStart() {
-		// TODO Auto-generated method stub
 
 		IntentFilter intentFilter = new IntentFilter();
 		intentFilter.addAction(PhoneStateService.DISMISS_ALERT_ACTION);
@@ -82,9 +79,12 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 
 	@Override
 	protected void onStop() {
-		// TODO Auto-generated method stub
-		unregisterReceiver(mReceiver);
+
 		super.onStop();
+
+		unregisterReceiver(mReceiver);
+
+		stopAlert();
 	}
 
 	@Override
@@ -92,14 +92,17 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 		switch (view.getId()) {
 		case R.id.button_dismiss: {
 			Log.v(TAG, "dismiss");
-			Intent intent = new Intent();
-			intent.setAction(PhoneStateService.STOP_ALARM_ACTION);
-			intent.putExtra("name", name);
-			sendBroadcast(intent);
+			stopAlert();
 		}
 			break;
 		}
 
 	}
 
+	private void stopAlert() {
+		Intent intent = new Intent();
+		intent.setAction(PhoneStateService.STOP_ALARM_ACTION);
+		intent.putExtra("name", name);
+		sendBroadcast(intent);
+	}
 }

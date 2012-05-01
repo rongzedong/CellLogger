@@ -22,7 +22,8 @@ public class RemoteTask extends AsyncTask<String, Integer, String> {
 	private static final String TAG = "RemoteTask";
 	private static final String USER_AGENT = "CellLogger/1.0";
 	private static final String INSTALLATION = "X-Installation";
-	private final Context context;
+	
+	protected final Context context;
 
 	public RemoteTask(Context c) {
 		super();

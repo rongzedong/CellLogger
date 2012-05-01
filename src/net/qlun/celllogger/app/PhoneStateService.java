@@ -1,5 +1,6 @@
 package net.qlun.celllogger.app;
 
+import net.qlun.celllogger.R;
 import net.qlun.celllogger.Station;
 import net.qlun.celllogger.provider.Alarm;
 import android.app.Service;
@@ -7,9 +8,16 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.AssetFileDescriptor;
+import android.content.res.Resources;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.MediaPlayer.OnErrorListener;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -42,6 +50,14 @@ public class PhoneStateService extends Service {
 			.getName() + "-dismiss_alert";
 
 	private static final String TAG = "cl-svr";
+
+	/** Play alarm up to 10 minutes before silencing */
+	private static final int ALARM_TIMEOUT_SECONDS = 15;
+	private boolean mPlaying = false;
+	private MediaPlayer mMediaPlayer;
+	private long mStartTime;
+	// Volume suggested by media team for in-call alarms.
+	private static final float IN_CALL_VOLUME = 0.125f;
 
 	private Context context;
 	private TelephonyManager telephonyManager;
@@ -210,13 +226,11 @@ public class PhoneStateService extends Service {
 				// stop alarm and dismiss alert
 				stopHorn();
 
-				
 				Intent i = new Intent();
 				i.setAction(PhoneStateService.DISMISS_ALERT_ACTION);
 				i.putExtra("name", name);
 				sendBroadcast(i);
-				
-				
+
 			} else {
 				Log.e(TAG, "unexpected action: " + intent.getAction());
 			}
@@ -289,13 +303,12 @@ public class PhoneStateService extends Service {
 	private void cellLocationChanged() {
 		Log.v(TAG, "cell changed, " + currentCell.lac + ", " + currentCell.cid);
 
-		// try get station id from Station
+		// try get station id from Station by lac,cid
 		int station = 1310;
 
 		Log.v(TAG, "got station , " + station);
 
 		// check if has alarm
-
 		boolean en = Alarm.checkStationEnabled(this, station);
 		if (!en) {
 			Log.v(TAG, "alarm not enabled.");
@@ -306,23 +319,102 @@ public class PhoneStateService extends Service {
 
 		String name = Station.getInstance(this).getName(station);
 
-		// play sound here?
+		// play sound here
 		startHorn();
 
 		// ,and open intent
 		Intent intent = new Intent(this, AlarmAlertActivity.class);
 		intent.putExtra("name", name);
 		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
+				| Intent.FLAG_ACTIVITY_NO_USER_ACTION);
 		startActivity(intent);
 
 	}
 
 	public void startHorn() {
 		Log.v(TAG, "start horn");
+
+		Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+
+		mMediaPlayer = new MediaPlayer();
+		mMediaPlayer.setOnErrorListener(new OnErrorListener() {
+			public boolean onError(MediaPlayer mp, int what, int extra) {
+				Log.e(TAG, "Error occurred while playing audio.");
+				mp.stop();
+				mp.release();
+				mMediaPlayer = null;
+				return true;
+			}
+		});
+
+		try {
+			// Check if we are in a call. If we are, use the in-call alarm
+			// resource at a low volume to not disrupt the call.
+			if (telephonyManager.getCallState() != TelephonyManager.CALL_STATE_IDLE) {
+				Log.v(TAG, "Using the in-call alarm");
+				mMediaPlayer.setVolume(IN_CALL_VOLUME, IN_CALL_VOLUME);
+				setDataSourceFromResource(getResources(), mMediaPlayer,
+						R.raw.alarm);
+			} else {
+				mMediaPlayer.setDataSource(this, alert);
+			}
+			startAlarm(mMediaPlayer);
+
+			mPlaying = true;
+			
+			
+			mHandler.postDelayed(new Runnable(){
+
+				@Override
+				public void run() {
+					Log.v(TAG, "stop horn timeout"); 
+					stopHorn();
+				}
+				
+			}, 1000 * ALARM_TIMEOUT_SECONDS);
+		} catch (Exception ex) {
+			Log.v(TAG, "cannot play ringtone");
+
+		}
 	}
 
 	public void stopHorn() {
 		Log.v(TAG, "stop horn");
+
+		if (mPlaying) {
+			mPlaying = false;
+
+			// Stop audio playing
+			if (mMediaPlayer != null) {
+				mMediaPlayer.stop();
+				mMediaPlayer.release();
+				mMediaPlayer = null;
+			}
+
+		}
+	}
+
+	// Do the common stuff when starting the alarm.
+	private void startAlarm(MediaPlayer player) throws java.io.IOException,
+			IllegalArgumentException, IllegalStateException {
+		final AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+		// do not play alarms if stream volume is 0
+		// (typically because ringer mode is silent).
+		if (audioManager.getStreamVolume(AudioManager.STREAM_ALARM) != 0) {
+			player.setAudioStreamType(AudioManager.STREAM_ALARM);
+			player.setLooping(true);
+			player.prepare();
+			player.start();
+		}
+	}
+
+	private void setDataSourceFromResource(Resources resources,
+			MediaPlayer player, int res) throws java.io.IOException {
+		AssetFileDescriptor afd = resources.openRawResourceFd(res);
+		if (afd != null) {
+			player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(),
+					afd.getLength());
+			afd.close();
+		}
 	}
 }

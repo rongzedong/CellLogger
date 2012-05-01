@@ -7,7 +7,11 @@
         <EditTextPreference
             android:key="UploadEndpointUrl"
             android:summary="Use http://..."
-            android:title="Upload Endpoint URL" />
+            android:title="Record Upload URL" />
+        <EditTextPreference
+            android:key="UpdateEndpointUrl"
+            android:summary="Use http://..."
+            android:title="Cell Data Update URL" />
     </PreferenceCategory>
     <PreferenceCategory
         android:key="categoryInfo"
