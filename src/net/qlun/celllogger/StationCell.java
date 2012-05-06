@@ -4,8 +4,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,7 +25,12 @@ public class StationCell {
 
 	private static final String DATA_FILE = "CELL_DATA.json";
 
-	private Map<String, Integer> _cell2station = new LinkedHashMap<String, Integer>();
+	private class Cell {
+		int lac;
+		int cid;
+	}
+
+	private Map<Integer, Cell> _stations = new LinkedHashMap<Integer, Cell>();
 
 	private static StationCell _instance = null;
 	private final Context ctx;
@@ -40,7 +49,7 @@ public class StationCell {
 
 	public void reload() {
 		Log.v(TAG, "reload");
-		_cell2station.clear();
+		_stations.clear();
 		read();
 	}
 
@@ -72,9 +81,11 @@ public class StationCell {
 						int lac = cell.getInt("lac");
 						int cid = cell.getInt("cid");
 
-						String key = getKey(lac, cid);
+						Cell c = new Cell();
+						c.lac = lac;
+						c.cid = cid;
 
-						this._cell2station.put(key, id);
+						this._stations.put(id, c);
 					}
 				}
 
@@ -84,7 +95,7 @@ public class StationCell {
 
 		} catch (IOException e) {
 			// Should never happen!
-			throw new RuntimeException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -96,7 +107,7 @@ public class StationCell {
 		try {
 			fos = ctx.openFileOutput(DATA_FILE, Context.MODE_PRIVATE);
 			fos.write(data.getBytes());
-
+			Log.v(TAG, "save to " + DATA_FILE);
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -120,9 +131,25 @@ public class StationCell {
 		return "" + lac + "," + cid;
 	}
 
-	public int getId(int lac, int cid) {
-		String key = getKey(lac, cid);
-		return _cell2station.get(key);
+	public List<Integer> getIdList(int lac, int cid) {
+		ArrayList<Integer> idList = new ArrayList<Integer>();
+		for (Entry<Integer, Cell> row : _stations.entrySet()) {
+			int station_id = row.getKey();
+			Cell c = row.getValue();
+			if (c.lac == lac && c.cid == cid) {
+				idList.add(station_id);
+			}
+		}
+
+		return idList;
 	}
 
+	public static int[] convertIntegers(List<Integer> integers) {
+		int[] ret = new int[integers.size()];
+		Iterator<Integer> iterator = integers.iterator();
+		for (int i = 0; i < ret.length; i++) {
+			ret[i] = iterator.next().intValue();
+		}
+		return ret;
+	}
 }

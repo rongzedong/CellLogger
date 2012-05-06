@@ -103,11 +103,16 @@ public class UploadFragment extends Fragment implements OnClickListener {
 				try {
 					JSONObject r = (JSONObject) new JSONTokener(result)
 							.nextValue();
-					int version = r.getInt("version");
+					JSONObject payload = r.getJSONObject("payload");
+					int version = payload.getInt("version");
+					
 					if (version > 0) {
 						// format ok
+						String celldata = payload.toString();
+						Log.v(TAG, celldata);
+						
 						StationCell sc = StationCell.getInstance(context);
-						sc.save(result);
+						sc.save(celldata);
 						sc.reload();
 					}
 				} catch (NullPointerException e) {

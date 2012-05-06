@@ -1,7 +1,10 @@
 package net.qlun.celllogger.app;
 
+import java.util.List;
+
 import net.qlun.celllogger.R;
 import net.qlun.celllogger.Station;
+import net.qlun.celllogger.StationCell;
 import net.qlun.celllogger.provider.Alarm;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -304,16 +307,31 @@ public class PhoneStateService extends Service {
 		Log.v(TAG, "cell changed, " + currentCell.lac + ", " + currentCell.cid);
 
 		// try get station id from Station by lac,cid
-		int station = 1310;
+		int station = -1;
 
-		Log.v(TAG, "got station , " + station);
+		List<Integer> stations = StationCell.getInstance(context).getIdList(
+				currentCell.lac, currentCell.cid);
+		for (Integer station_id : stations) {
+			int _station = station_id.intValue();
+			Log.v(TAG, "check station , " + _station);
 
-		// check if has alarm
-		boolean en = Alarm.checkStationEnabled(this, station);
-		if (!en) {
-			Log.v(TAG, "alarm not enabled.");
+			// check if has alarm
+			boolean en = Alarm.checkStationEnabled(this, _station);
+			if (en) {
+				station = _station;
+				break;
+			} else {
+				Log.v(TAG, "skip station, " + _station);
+			}
+
+		}
+
+		if (station == -1) {
+			Log.v(TAG, "no alarm set on");
 			return;
 		}
+
+		Log.v(TAG, "got station , " + station);
 
 		Log.i(TAG, "alarm on");
 
@@ -361,16 +379,15 @@ public class PhoneStateService extends Service {
 			startAlarm(mMediaPlayer);
 
 			mPlaying = true;
-			
-			
-			mHandler.postDelayed(new Runnable(){
+
+			mHandler.postDelayed(new Runnable() {
 
 				@Override
 				public void run() {
-					Log.v(TAG, "stop horn timeout"); 
+					Log.v(TAG, "stop horn timeout");
 					stopHorn();
 				}
-				
+
 			}, 1000 * ALARM_TIMEOUT_SECONDS);
 		} catch (Exception ex) {
 			Log.v(TAG, "cannot play ringtone");
