@@ -146,7 +146,11 @@ public class PhoneStateService extends Service {
 			if (signalStrength.isGsm()) {
 				// GSM
 				int asu = signalStrength.getGsmSignalStrength();
-				currentCell.signalStrength = -113 + 2 * asu;
+				if(asu == 99) {
+					currentCell.signalStrength = -113; // no signal
+				} else {
+					currentCell.signalStrength = -113 + 2 * asu;
+				}
 			} else {
 				// fixme
 				currentCell.signalStrength = signalStrength.getCdmaDbm();
