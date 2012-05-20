@@ -133,8 +133,10 @@ public class PhoneStateService extends Service {
 	private Runnable mTickTask = new Runnable() {
 		public void run() {
 
+			Log.v(TAG, "live");
+			
 			// sendCells();
-
+			
 			mHandler.postDelayed(this, 5000);
 		}
 	};
@@ -233,7 +235,7 @@ public class PhoneStateService extends Service {
 				Log.v(TAG, "stop alarm " + name);
 
 				// stop alarm and dismiss alert
-				stopHorn();
+				stopHorn(true);
 
 			} else {
 				Log.e(TAG, "unexpected action: " + intent.getAction());
@@ -260,10 +262,10 @@ public class PhoneStateService extends Service {
 
 		locationManager = (LocationManager) context
 				.getSystemService(Context.LOCATION_SERVICE);
-		// locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-		// 5000, 10, mLocationListener);
+		locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+				0, 0, mLocationListener);
 
-		// mHandler.postDelayed(mTickTask, 5000);
+		mHandler.postDelayed(mTickTask, 5000);
 
 		ServiceWakeLock.acquireCpuWakeLock(this);
 
@@ -378,6 +380,11 @@ public class PhoneStateService extends Service {
 	public void startHorn() {
 		Log.v(TAG, "start horn");
 
+		if(mPlaying) {
+			Log.v(TAG, "playing skip horn.");
+			return;
+		}
+		
 		Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
 
 		mMediaPlayer = new MediaPlayer();
@@ -411,7 +418,7 @@ public class PhoneStateService extends Service {
 				@Override
 				public void run() {
 					Log.v(TAG, "stop horn timeout");
-					stopHorn();
+					stopHorn(false);
 				}
 
 			}, 1000 * ALARM_TIMEOUT_SECONDS);
@@ -421,7 +428,7 @@ public class PhoneStateService extends Service {
 		}
 	}
 
-	public void stopHorn() {
+	public void stopHorn(boolean dismiss) {
 		Log.v(TAG, "stop horn");
 
 		if (mPlaying) {
@@ -429,14 +436,19 @@ public class PhoneStateService extends Service {
 
 			// Stop audio playing
 			if (mMediaPlayer != null) {
+				Log.v(TAG, "stop player");
 				mMediaPlayer.stop();
 				mMediaPlayer.release();
 				mMediaPlayer = null;
+			} else {
+				Log.v(TAG, "null player");
 			}
 
+		} else {
+			Log.v(TAG, "not playing");
 		}
 
-		{
+		if(dismiss){
 			Intent i = new Intent();
 			i.setAction(PhoneStateService.DISMISS_ALERT_ACTION);
 			i.putExtra("name", "name");
@@ -452,7 +464,7 @@ public class PhoneStateService extends Service {
 		// (typically because ringer mode is silent).
 		if (audioManager.getStreamVolume(AudioManager.STREAM_ALARM) != 0) {
 			player.setAudioStreamType(AudioManager.STREAM_ALARM);
-			player.setLooping(true);
+			player.setLooping(false);
 			player.prepare();
 			player.start();
 		}

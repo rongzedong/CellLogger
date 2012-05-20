@@ -22,10 +22,8 @@ public class AlarmWakeLock {
 		PowerManager pm = (PowerManager) context
 				.getSystemService(Context.POWER_SERVICE);
 
-		sCpuWakeLock = pm.newWakeLock(
-				PowerManager.PARTIAL_WAKE_LOCK
-				| PowerManager.ACQUIRE_CAUSES_WAKEUP
-				| PowerManager.ON_AFTER_RELEASE, TAG);
+		sCpuWakeLock = pm.newWakeLock(PowerManager.ON_AFTER_RELEASE
+				| PowerManager.SCREEN_DIM_WAKE_LOCK, TAG);
 		sCpuWakeLock.acquire();
 	}
 

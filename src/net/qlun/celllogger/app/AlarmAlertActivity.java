@@ -3,6 +3,8 @@ package net.qlun.celllogger.app;
 import net.qlun.celllogger.R;
 import net.qlun.celllogger.util.AlarmWakeLock;
 import android.app.Activity;
+import android.app.KeyguardManager;
+import android.app.KeyguardManager.KeyguardLock;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -29,6 +31,9 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 
 	boolean mBound;
 
+	private KeyguardManager keyguardManager;
+	private KeyguardLock keyLock;
+	
 	private ServiceConnection mConnection = new ServiceConnection() {
 
 		@Override
@@ -72,17 +77,23 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		AlarmWakeLock.acquireCpuWakeLock(getApplicationContext());
+		Log.v(TAG, "create");
+
+
 
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 
-		final Window win = getWindow();
+		Window win = getWindow();
 		win.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-				| WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
-
-		win.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+				| WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+				| WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
 				| WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
 
+
+		keyguardManager = (KeyguardManager) getSystemService(Activity.KEYGUARD_SERVICE);
+		keyLock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
+		
+		
 		setContentView(R.layout.alarm_alert);
 
 		name = getIntent().getCharSequenceExtra("name");
@@ -97,33 +108,43 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 
 	@Override
 	protected void onStart() {
+		super.onStart();
 
+		Log.v(TAG, "start");
+		
 		IntentFilter intentFilter = new IntentFilter();
 		intentFilter.addAction(PhoneStateService.DISMISS_ALERT_ACTION);
 		registerReceiver(mReceiver, intentFilter);
 
-		super.onStart();
-
-		Intent intent = new Intent(this, PhoneStateService.class);
-		getApplicationContext().bindService(intent, mConnection,
-				Context.BIND_AUTO_CREATE);
-
 	}
 
+	@Override
+	protected void onResume() {
+		super.onResume();
+		Log.v(TAG, "resume");
+		
+		AlarmWakeLock.acquireCpuWakeLock(this);
+		
+		keyLock.disableKeyguard();
+	}
+	
+	@Override
+	protected void onPause() {
+		super.onPause();
+		Log.v(TAG, "pause");
+		
+		keyLock.reenableKeyguard();
+		
+		AlarmWakeLock.releaseCpuLock();
+	}
+	
 	@Override
 	protected void onStop() {
 		super.onStop();
 
+		Log.v(TAG, "stop");
+		
 		stopAlert();
-
-		if (mBound) {
-			try {
-				getApplicationContext().unbindService(mConnection);
-			} catch (IllegalArgumentException iae) {
-
-			}
-			mBound = false;
-		}
 
 		unregisterReceiver(mReceiver);
 	}
@@ -132,7 +153,9 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 	protected void onDestroy() {
 		super.onDestroy();
 
-		AlarmWakeLock.releaseCpuLock();
+		Log.v(TAG, "destroy");
+		
+
 	}
 
 	@Override
@@ -148,15 +171,11 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 	}
 
 	private void stopAlert() {
-		if (mBound) {
-			Log.v(TAG, "bound stop");
-			mService.stopHorn();
-			finish(); // close me
-		} else {
-			Intent intent = new Intent();
-			intent.setAction(PhoneStateService.STOP_ALARM_ACTION);
-			intent.putExtra("name", name);
-			sendBroadcast(intent);
-		}
+
+		Intent intent = new Intent();
+		intent.setAction(PhoneStateService.STOP_ALARM_ACTION);
+		intent.putExtra("name", name);
+		sendBroadcast(intent);
+
 	}
 }
