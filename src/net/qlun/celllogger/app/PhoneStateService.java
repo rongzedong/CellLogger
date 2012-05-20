@@ -6,6 +6,8 @@ import net.qlun.celllogger.R;
 import net.qlun.celllogger.Station;
 import net.qlun.celllogger.StationCell;
 import net.qlun.celllogger.provider.Alarm;
+import net.qlun.celllogger.util.ServiceWakeLock;
+import net.qlun.celllogger.util.ToastMaster;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -32,6 +34,7 @@ import android.telephony.TelephonyManager;
 import android.telephony.cdma.CdmaCellLocation;
 import android.telephony.gsm.GsmCellLocation;
 import android.util.Log;
+import android.widget.Toast;
 
 public class PhoneStateService extends Service {
 
@@ -43,8 +46,7 @@ public class PhoneStateService extends Service {
 	/**
 	 * send stop alert to service
 	 */
-	public static final String STOP_ALARM_ACTION = PhoneStateService.class
-			.getName() + "-stop_alarm";
+	public static final String STOP_ALARM_ACTION = "net.qlun.celllogger.STOP_ALARM_ACTION";
 
 	/**
 	 * send dismiss to alert activity
@@ -55,7 +57,7 @@ public class PhoneStateService extends Service {
 	private static final String TAG = "cl-svr";
 
 	/** Play alarm up to 10 minutes before silencing */
-	private static final int ALARM_TIMEOUT_SECONDS = 15;
+	private static final int ALARM_TIMEOUT_SECONDS = 5;
 	private boolean mPlaying = false;
 	private MediaPlayer mMediaPlayer;
 	private long mStartTime;
@@ -146,7 +148,7 @@ public class PhoneStateService extends Service {
 			if (signalStrength.isGsm()) {
 				// GSM
 				int asu = signalStrength.getGsmSignalStrength();
-				if(asu == 99) {
+				if (asu == 99) {
 					currentCell.signalStrength = -113; // no signal
 				} else {
 					currentCell.signalStrength = -113 + 2 * asu;
@@ -233,11 +235,6 @@ public class PhoneStateService extends Service {
 				// stop alarm and dismiss alert
 				stopHorn();
 
-				Intent i = new Intent();
-				i.setAction(PhoneStateService.DISMISS_ALERT_ACTION);
-				i.putExtra("name", name);
-				sendBroadcast(i);
-
 			} else {
 				Log.e(TAG, "unexpected action: " + intent.getAction());
 			}
@@ -248,6 +245,7 @@ public class PhoneStateService extends Service {
 
 	@Override
 	public void onCreate() {
+		super.onCreate();
 
 		context = this.getApplicationContext();
 		telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
@@ -267,6 +265,27 @@ public class PhoneStateService extends Service {
 
 		// mHandler.postDelayed(mTickTask, 5000);
 
+		ServiceWakeLock.acquireCpuWakeLock(this);
+
+		IntentFilter intentFilter = new IntentFilter();
+		intentFilter.addAction(STOP_ALARM_ACTION);
+		registerReceiver(mReceiver, intentFilter);
+
+		// XXX alarm debug only
+//		mHandler.postDelayed(new Runnable() {
+//
+//			@Override
+//			public void run() {
+//				cellLocationChanged();
+//
+//				String txt = "aaa3";
+//				Toast toast = Toast.makeText(getApplicationContext(), txt,
+//						Toast.LENGTH_SHORT);
+//				ToastMaster.setToast(toast);
+//				toast.show();
+//			}
+//
+//		}, 10000);
 	}
 
 	@Override
@@ -274,10 +293,6 @@ public class PhoneStateService extends Service {
 		Log.v(TAG, "start service.");
 
 		// new LogCatTask().execute();
-
-		IntentFilter intentFilter = new IntentFilter();
-		intentFilter.addAction(STOP_ALARM_ACTION);
-		registerReceiver(mReceiver, intentFilter);
 
 		return START_STICKY;
 	}
@@ -299,12 +314,16 @@ public class PhoneStateService extends Service {
 
 	@Override
 	public void onDestroy() {
+		super.onDestroy();
+
 		Log.v(TAG, "destroy service.");
 
 		telephonyManager.listen(mPhoneListener, PhoneStateListener.LISTEN_NONE);
 		locationManager.removeUpdates(mLocationListener);
 
-		super.onDestroy();
+		ServiceWakeLock.releaseCpuLock();
+		
+		unregisterReceiver(mReceiver);
 	}
 
 	private void cellLocationChanged() {
@@ -315,6 +334,9 @@ public class PhoneStateService extends Service {
 
 		List<Integer> stations = StationCell.getInstance(context).getIdList(
 				currentCell.lac, currentCell.cid);
+
+		Log.v(TAG, stations.toString());
+
 		for (Integer station_id : stations) {
 			int _station = station_id.intValue();
 			Log.v(TAG, "check station , " + _station);
@@ -412,6 +434,13 @@ public class PhoneStateService extends Service {
 				mMediaPlayer = null;
 			}
 
+		}
+
+		{
+			Intent i = new Intent();
+			i.setAction(PhoneStateService.DISMISS_ALERT_ACTION);
+			i.putExtra("name", "name");
+			sendBroadcast(i);
 		}
 	}
 

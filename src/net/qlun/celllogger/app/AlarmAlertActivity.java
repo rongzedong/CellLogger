@@ -1,12 +1,16 @@
 package net.qlun.celllogger.app;
 
 import net.qlun.celllogger.R;
+import net.qlun.celllogger.util.AlarmWakeLock;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -20,6 +24,28 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 	protected static final String TAG = "CL-Alert";
 
 	private CharSequence name;
+
+	PhoneStateService mService = null;
+
+	boolean mBound;
+
+	private ServiceConnection mConnection = new ServiceConnection() {
+
+		@Override
+		public void onServiceConnected(ComponentName className, IBinder service) {
+			Log.v(TAG, "service connected.");
+			PhoneStateService.LocalBinder binder = (PhoneStateService.LocalBinder) service;
+			mService = binder.getService();
+			mBound = true;
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName arg0) {
+			Log.v(TAG, "service disconnected.");
+			mBound = false;
+		}
+
+	};
 
 	private BroadcastReceiver mReceiver = new BroadcastReceiver() {
 
@@ -45,6 +71,8 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
+		AlarmWakeLock.acquireCpuWakeLock(getApplicationContext());
 
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 
@@ -75,16 +103,36 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 		registerReceiver(mReceiver, intentFilter);
 
 		super.onStart();
+
+		Intent intent = new Intent(this, PhoneStateService.class);
+		getApplicationContext().bindService(intent, mConnection,
+				Context.BIND_AUTO_CREATE);
+
 	}
 
 	@Override
 	protected void onStop() {
-
 		super.onStop();
 
-		unregisterReceiver(mReceiver);
-
 		stopAlert();
+
+		if (mBound) {
+			try {
+				getApplicationContext().unbindService(mConnection);
+			} catch (IllegalArgumentException iae) {
+
+			}
+			mBound = false;
+		}
+
+		unregisterReceiver(mReceiver);
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+
+		AlarmWakeLock.releaseCpuLock();
 	}
 
 	@Override
@@ -100,9 +148,15 @@ public class AlarmAlertActivity extends Activity implements OnClickListener {
 	}
 
 	private void stopAlert() {
-		Intent intent = new Intent();
-		intent.setAction(PhoneStateService.STOP_ALARM_ACTION);
-		intent.putExtra("name", name);
-		sendBroadcast(intent);
+		if (mBound) {
+			Log.v(TAG, "bound stop");
+			mService.stopHorn();
+			finish(); // close me
+		} else {
+			Intent intent = new Intent();
+			intent.setAction(PhoneStateService.STOP_ALARM_ACTION);
+			intent.putExtra("name", name);
+			sendBroadcast(intent);
+		}
 	}
 }

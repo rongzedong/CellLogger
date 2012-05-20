@@ -338,6 +338,19 @@ public class RecordFragment extends Fragment implements OnClickListener {
 				ti.setText(last_save);
 			}
 		}
+		
+		{
+			TextView ti = (TextView) getActivity().findViewById(
+					R.id.service_status);
+			if (ti != null) {
+				String status = "-";
+				if(mBound) {
+					status = "running";
+				}
+				ti.setText(status);
+			}
+		}
+		
 	}
 
 	private ServiceConnection mConnection = new ServiceConnection() {

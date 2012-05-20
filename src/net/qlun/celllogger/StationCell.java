@@ -5,11 +5,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -28,9 +31,23 @@ public class StationCell {
 	private class Cell {
 		int lac;
 		int cid;
+
+		@Override
+		public int hashCode() {
+			return lac + cid;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (o instanceof Cell) {
+				Cell c = (Cell) o;
+				return (c.lac == lac && c.cid == cid);
+			}
+			return false;
+		}
 	}
 
-	private Map<Integer, Cell> _stations = new LinkedHashMap<Integer, Cell>();
+	private HashMap<Integer, HashSet<Cell>> _stations = new HashMap<Integer, HashSet<Cell>>();
 
 	private static StationCell _instance = null;
 	private final Context ctx;
@@ -85,7 +102,16 @@ public class StationCell {
 						c.lac = lac;
 						c.cid = cid;
 
-						this._stations.put(id, c);
+						// fill stations
+						HashSet<Cell> st = _stations.get(id);
+
+						if (st == null) {
+							st = new HashSet<Cell>();
+							_stations.put(id, st);
+						}
+
+						st.add(c);
+
 					}
 				}
 
@@ -127,17 +153,32 @@ public class StationCell {
 
 	}
 
+	public static String getKey(Cell c) {
+		return "" + c.lac + "," + c.cid;
+	}
+
 	public static String getKey(int lac, int cid) {
 		return "" + lac + "," + cid;
 	}
 
 	public List<Integer> getIdList(int lac, int cid) {
+
 		ArrayList<Integer> idList = new ArrayList<Integer>();
-		for (Entry<Integer, Cell> row : _stations.entrySet()) {
+
+		STATION_LOOP: for (Entry<Integer, HashSet<Cell>> row : _stations
+				.entrySet()) {
 			int station_id = row.getKey();
-			Cell c = row.getValue();
-			if (c.lac == lac && c.cid == cid) {
-				idList.add(station_id);
+			HashSet<Cell> cells = row.getValue();
+
+			// if(cells == null ){
+			// continue;
+			// }
+			for (Cell c : cells) {
+				// Log.v(TAG, "ccc " + c.lac + "," + c.cid);
+				if (c.lac == lac && c.cid == cid) {
+					idList.add(station_id);
+					continue STATION_LOOP;
+				}
 			}
 		}
 
